@@ -6,6 +6,8 @@ use pb::{
     GetTicketDurationsResponse, GetTicketTypesRequest, GetTicketTypesResponse,
 };
 
+mod db;
+
 pub mod pb {
     tonic::include_proto!("purchase");
 }
@@ -35,28 +37,18 @@ impl ProductService for Service {
         _request: Request<GetTicketTypesRequest>,
     ) -> Result<Response<GetTicketTypesResponse>, Status> {
         let reply = pb::GetTicketTypesResponse {
-            ticket_types: vec![
-                pb::TicketType {
-                    id: "chalet3".into(),
-                    display: "Chalet, 3 People".into(),
-                    sold_out: false,
-                },
-                pb::TicketType {
-                    id: "chalet4".into(),
-                    display: "Chalet, 4 People".into(),
-                    sold_out: false,
-                },
-            ],
+            ticket_types: db::get_ticket_types(),
         };
         Ok(Response::new(reply))
     }
 
     async fn get_ticket_durations(
         &self,
-        _request: Request<GetTicketDurationsRequest>,
+        request: Request<GetTicketDurationsRequest>,
     ) -> Result<Response<GetTicketDurationsResponse>, Status> {
+        let req = request.into_inner();
         let reply = pb::GetTicketDurationsResponse {
-            ticket_durations: vec!["3 days".into(), "4 days".into()],
+            ticket_durations: db::get_ticket_durations(req.ticket_type),
         };
         Ok(Response::new(reply))
     }
