@@ -1,58 +1,5 @@
-use tonic::{transport::Server, Request, Response, Status};
-
-use pb::product_service_server::{ProductService, ProductServiceServer};
-use pb::{
-    AddTicketToBasketRequest, AddTicketToBasketResponse, GetTicketDurationsRequest,
-    GetTicketDurationsResponse, GetTicketTypesRequest, GetTicketTypesResponse,
-};
-
-mod db;
-
-pub mod pb {
-    tonic::include_proto!("purchase");
-}
-
-#[derive(Default)]
-pub struct Service {}
-
-#[tonic::async_trait]
-impl ProductService for Service {
-    async fn add_ticket_to_basket(
-        &self,
-        request: Request<AddTicketToBasketRequest>,
-    ) -> Result<Response<AddTicketToBasketResponse>, Status> {
-        let req = request.into_inner();
-        Ok(Response::new(pb::AddTicketToBasketResponse {
-            ticket: Some(pb::Ticket {
-                r#type: req.r#type,
-                duration: req.duration,
-                price: 5f32,
-                reserved_until: 23492304234,
-            }),
-        }))
-    }
-
-    async fn get_ticket_types(
-        &self,
-        _request: Request<GetTicketTypesRequest>,
-    ) -> Result<Response<GetTicketTypesResponse>, Status> {
-        let reply = pb::GetTicketTypesResponse {
-            ticket_types: db::get_ticket_types(),
-        };
-        Ok(Response::new(reply))
-    }
-
-    async fn get_ticket_durations(
-        &self,
-        request: Request<GetTicketDurationsRequest>,
-    ) -> Result<Response<GetTicketDurationsResponse>, Status> {
-        let req = request.into_inner();
-        let reply = pb::GetTicketDurationsResponse {
-            ticket_durations: db::get_ticket_durations(req.ticket_type),
-        };
-        Ok(Response::new(reply))
-    }
-}
+use festival_tickets::Service;
+use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -62,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("server listening on {}", addr);
 
     Server::builder()
-        .add_service(ProductServiceServer::new(service))
+        .add_service(service.into_service())
         .serve(addr)
         .await?;
 
