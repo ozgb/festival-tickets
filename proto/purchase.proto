@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package purchase;
+
+message Ticket {
+    TicketType type = 1;
+    string duration = 2;
+    float price = 3;
+    uint64 reserved_until = 4;
+}
+
+message TicketType {
+    string id = 1;
+    string display = 2;
+    bool sold_out = 3;
+}
+
+service ProductService {
+    rpc GetTicketTypes(GetTicketTypesRequest) returns (GetTicketTypesResponse) {}
+    rpc GetTicketDurations(GetTicketDurationsRequest) returns (GetTicketDurationsResponse) {}
+    rpc AddTicketToBasket(AddTicketToBasketRequest) returns (AddTicketToBasketResponse) {}
+    // TODO
+    // GetNumRemaining
+}
+
+message GetTicketTypesRequest {}
+
+message GetTicketTypesResponse {
+    repeated TicketType ticket_types = 1;
+}
+
+message GetTicketDurationsRequest {
+    string ticket_type = 1;
+}
+
+message GetTicketDurationsResponse {
+    repeated string ticket_durations = 1;
+}
+
+message AddTicketToBasketRequest {
+    TicketType type = 1;
+    string duration = 2;
+}
+
+message AddTicketToBasketResponse {
+    Ticket ticket = 1;
+}
