@@ -7,6 +7,9 @@ use tonic::transport::Server;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse().unwrap();
     let pool = festival_tickets::db::connect_to_pool().await;
+    // Run database migrations
+    sqlx::migrate!().run(&pool).await?;
+
     let service = Service::new(Arc::new(pool));
 
     println!("server listening on {}", addr);

@@ -19,6 +19,12 @@ Requirements:
 
 ## Dev setup
 
+Install sqlx cli;
+
+```bash
+$ cargo install sqlx-cli
+```
+
 In one terminal:
 
 ```bash

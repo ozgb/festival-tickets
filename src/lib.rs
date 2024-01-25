@@ -50,7 +50,9 @@ impl ProductService for Service {
         _request: Request<GetTicketTypesRequest>,
     ) -> Result<Response<GetTicketTypesResponse>, Status> {
         let reply = pb::GetTicketTypesResponse {
-            ticket_types: db::get_ticket_types(),
+            ticket_types: db::get_ticket_types(&self.dbpool)
+                .await
+                .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?,
         };
         Ok(Response::new(reply))
     }

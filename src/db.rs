@@ -1,16 +1,10 @@
 use super::env;
 use super::pb;
+use futures::TryStreamExt;
 use sqlx::postgres::Postgres;
-use sqlx::Pool;
+use sqlx::Row;
 
 pub type DbPool = sqlx::Pool<Postgres>;
-
-// Define database types
-
-struct TicketType {
-    id: String,
-    display: String,
-}
 
 pub async fn connect_to_pool() -> DbPool {
     let db_url = env::Cfg::DatabaseUrl.load().expect("Failed to load db url");
@@ -20,21 +14,19 @@ pub async fn connect_to_pool() -> DbPool {
     pool
 }
 
-pub fn get_ticket_types() -> Vec<pb::TicketType> {
-    // TODO: Sqlx select
+pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx::Error> {
+    let mut rows = sqlx::query("SELECT * FROM ticket_types").fetch(pool);
 
-    vec![
-        pb::TicketType {
-            id: "chalet3".into(),
-            display: "Chalet, 3 People".into(),
+    let mut ticket_types = Vec::new();
+    while let Some(row) = rows.try_next().await? {
+        ticket_types.push(pb::TicketType {
+            id: row.try_get::<String, _>("id")?,
+            display: row.try_get::<String, _>("display")?,
             sold_out: false,
-        },
-        pb::TicketType {
-            id: "chalet4".into(),
-            display: "Chalet, 4 People".into(),
-            sold_out: false,
-        },
-    ]
+        });
+    }
+
+    Ok(ticket_types)
 }
 
 pub fn get_ticket_durations(_type: Option<pb::TicketType>) -> Vec<String> {
