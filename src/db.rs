@@ -1,10 +1,23 @@
+use super::env;
 use super::pb;
+use sqlx::postgres::Postgres;
+use sqlx::Pool;
+
+pub type DbPool = sqlx::Pool<Postgres>;
 
 // Define database types
 
 struct TicketType {
     id: String,
     display: String,
+}
+
+pub async fn connect_to_pool() -> DbPool {
+    let db_url = env::Cfg::DatabaseUrl.load().expect("Failed to load db url");
+    let pool = DbPool::connect(&db_url)
+        .await
+        .expect("Failed to connect to pool");
+    pool
 }
 
 pub fn get_ticket_types() -> Vec<pb::TicketType> {

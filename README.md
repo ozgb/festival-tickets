@@ -16,3 +16,18 @@ Requirements:
 
 - Tonic/gRPC
 - Postgres
+
+## Dev setup
+
+In one terminal:
+
+```bash
+$ docker compose up
+```
+
+In another:
+
+```bash
+$ cp template.env .env
+$ cargo run
+```

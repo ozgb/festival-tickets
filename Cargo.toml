@@ -9,6 +9,11 @@ edition = "2021"
 tonic = "0.10.2"
 prost = "0.12"
 tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres" ] }
+dotenv = "0.15.0"
+strum = "0.25.0"
+strum_macros = "0.25.3"
+thiserror = "1.0.56"
 
 [build-dependencies]
 tonic-build = "0.10.2"

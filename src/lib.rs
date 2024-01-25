@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use pb::product_service_server::{ProductService, ProductServiceServer};
@@ -6,16 +7,22 @@ use pb::{
     GetTicketDurationsResponse, GetTicketTypesRequest, GetTicketTypesResponse,
 };
 
-mod db;
+pub mod db;
+mod env;
 
 pub mod pb {
     tonic::include_proto!("purchase");
 }
 
-#[derive(Default)]
-pub struct Service {}
+pub struct Service {
+    dbpool: Arc<db::DbPool>,
+}
 
 impl Service {
+    pub fn new(dbpool: Arc<db::DbPool>) -> Self {
+        Self { dbpool }
+    }
+
     pub fn into_service(self) -> ProductServiceServer<Service> {
         ProductServiceServer::new(self)
     }
