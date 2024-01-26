@@ -63,7 +63,7 @@ impl ProductService for Service {
     ) -> Result<Response<GetTicketDurationsResponse>, Status> {
         let req = request.into_inner();
         let reply = pb::GetTicketDurationsResponse {
-            ticket_durations: db::get_ticket_durations(req.ticket_type),
+            ticket_durations: db::get_ticket_durations(&req.ticket_type_id),
         };
         Ok(Response::new(reply))
     }

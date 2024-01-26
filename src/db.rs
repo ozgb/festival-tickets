@@ -29,7 +29,7 @@ pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx
     Ok(ticket_types)
 }
 
-pub fn get_ticket_durations(_type: Option<pb::TicketType>) -> Vec<String> {
+pub fn get_ticket_durations(_type_id: &str) -> Vec<String> {
     // TODO: Sqlx select
     vec!["3 days".into(), "4 days".into()]
 }

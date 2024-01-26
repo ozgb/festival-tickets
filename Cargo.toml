@@ -17,5 +17,8 @@ strum_macros = "0.25.3"
 thiserror = "1.0.56"
 futures = "0.3.30"
 
+[dev-dependencies]
+oneshot = "0.1.6"
+
 [build-dependencies]
 tonic-build = "0.10.2"

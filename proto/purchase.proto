@@ -30,7 +30,7 @@ message GetTicketTypesResponse {
 }
 
 message GetTicketDurationsRequest {
-    TicketType ticket_type = 2;
+    string ticket_type_id = 3;
 }
 
 message GetTicketDurationsResponse {
