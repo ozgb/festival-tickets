@@ -1,5 +1,9 @@
 # Festival ticket ordering system
 
+**WIP**
+
+Festival booking systems are known to crash on ticket sale launch (Green Man, End of the Road, Bangface). This is an implementation that can survive high load!
+
 Requirements:
 
 - Runs on a single machine
