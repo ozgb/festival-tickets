@@ -35,13 +35,12 @@ impl ProductService for Service {
         request: Request<AddTicketToBasketRequest>,
     ) -> Result<Response<AddTicketToBasketResponse>, Status> {
         let req = request.into_inner();
+        let order = db::add_ticket_to_basket(&self.dbpool, &req.ticket_type_id, req.duration)
+            .await
+            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+
         Ok(Response::new(pb::AddTicketToBasketResponse {
-            ticket: Some(pb::Ticket {
-                r#type: req.r#type,
-                duration: req.duration,
-                price: 5f32,
-                reserved_until: 23492304234,
-            }),
+            ticket: Some(order),
         }))
     }
 
@@ -63,7 +62,9 @@ impl ProductService for Service {
     ) -> Result<Response<GetTicketDurationsResponse>, Status> {
         let req = request.into_inner();
         let reply = pb::GetTicketDurationsResponse {
-            ticket_durations: db::get_ticket_durations(&req.ticket_type_id),
+            ticket_durations: db::get_ticket_durations(&self.dbpool, &req.ticket_type_id)
+                .await
+                .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?,
         };
         Ok(Response::new(reply))
     }

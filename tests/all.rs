@@ -1,4 +1,6 @@
 mod test_client;
+use std::ops::Add;
+
 use test_client::pb::product_service_client::ProductServiceClient;
 use tonic::transport::Channel;
 
@@ -26,8 +28,37 @@ async fn reserve_ticket() {
         .unwrap()
         .into_inner();
 
+    assert_eq!(res.ticket_durations.len(), 2);
+    assert!(res.ticket_durations.contains(&3),);
+    assert!(res.ticket_durations.contains(&4),);
+
+    let res = client
+        .add_ticket_to_basket(test_client::pb::AddTicketToBasketRequest {
+            ticket_type_id: "chalet3".to_string(),
+            duration: 3,
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    let ticket = res.ticket.unwrap();
+
     assert_eq!(
-        res.ticket_durations,
-        vec!["3 days".to_string(), "4 days".to_string()]
+        ticket.r#type.as_ref().unwrap().display,
+        "Chalet, 3 people".to_string()
+    );
+
+    let expected_reservation_time = chrono::Utc::now()
+        .add(chrono::Duration::minutes(9))
+        .naive_utc();
+
+    let ticket_reserved_time =
+        chrono::NaiveDateTime::from_timestamp_opt(ticket.reserved_until as i64, 0).unwrap();
+
+    println!("{:#?}", ticket);
+
+    assert!(
+        ticket_reserved_time >= expected_reservation_time,
+        "Check ticket is reserved for at least 9 minutes"
     );
 }

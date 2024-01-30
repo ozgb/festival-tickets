@@ -1,5 +1,8 @@
+use std::ops::Add;
+
 use super::env;
 use super::pb;
+use chrono;
 use futures::TryStreamExt;
 use sqlx::postgres::Postgres;
 use sqlx::Row;
@@ -29,7 +32,63 @@ pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx
     Ok(ticket_types)
 }
 
-pub fn get_ticket_durations(_type_id: &str) -> Vec<String> {
-    // TODO: Sqlx select
-    vec!["3 days".into(), "4 days".into()]
+pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<u32>, sqlx::Error> {
+    let rows = sqlx::query!("SELECT * FROM order_stats")
+        .fetch_all(pool)
+        .await?;
+
+    let mut durations = vec![];
+    for row in rows {
+        if row.order_limit > row.order_count.unwrap_or(0) {
+            durations.push(row.duration_days as u32);
+        }
+    }
+
+    Ok(durations)
+}
+
+pub async fn add_ticket_to_basket(
+    pool: &DbPool,
+    type_id: &str,
+    duration: u32,
+) -> Result<pb::Ticket, sqlx::Error> {
+    let record = sqlx::query!(
+        r#"
+WITH ord as (
+        INSERT INTO orders (ticket_type, reserved_until, duration_days)
+        VALUES ( $1, $2, $3::integer )
+        RETURNING *
+    )
+SELECT 
+    tt.id as ticket_type_id,
+    tt.display as ticket_type_display,
+    ord.id as order_id,
+    ord.reserved_until as order_reserved_until,
+    ord.duration_days as duration_days
+FROM ticket_types as tt
+JOIN ord ON tt.id = ord.ticket_type
+WHERE ord.duration_days IS NOT NULL
+        "#,
+        type_id,
+        chrono::Utc::now()
+            .add(chrono::Duration::minutes(10))
+            .naive_utc(),
+        duration as i32
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(pb::Ticket {
+        r#type: Some(pb::TicketType {
+            id: record.ticket_type_id.clone(),
+            display: record.ticket_type_display.unwrap_or(record.ticket_type_id),
+            sold_out: false,
+        }),
+        duration: record.duration_days.unwrap() as u32,
+        price: 0f32,
+        reserved_until: record
+            .order_reserved_until
+            .signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
+            .num_seconds() as u64,
+    })
 }

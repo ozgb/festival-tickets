@@ -4,7 +4,7 @@ package purchase;
 
 message Ticket {
     TicketType type = 1;
-    string duration = 2;
+    uint32 duration = 2;
     float price = 3;
     uint64 reserved_until = 4;
 }
@@ -34,12 +34,12 @@ message GetTicketDurationsRequest {
 }
 
 message GetTicketDurationsResponse {
-    repeated string ticket_durations = 1;
+    repeated uint32 ticket_durations = 2;
 }
 
 message AddTicketToBasketRequest {
-    TicketType type = 1;
-    string duration = 2;
+    string ticket_type_id = 3;
+    uint32 duration = 4;
 }
 
 message AddTicketToBasketResponse {
