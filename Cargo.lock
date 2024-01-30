@@ -415,6 +415,7 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 name = "festival-tickets"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "chrono",
  "dotenv",
  "futures",
@@ -425,6 +426,7 @@ dependencies = [
  "strum_macros",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tonic",
  "tonic-build",
 ]
@@ -2022,6 +2024,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

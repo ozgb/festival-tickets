@@ -1,5 +1,7 @@
 use std::ops::Add;
 
+use crate::pb::OrderStats;
+
 use super::env;
 use super::pb;
 use chrono;
@@ -181,4 +183,19 @@ WHERE ord.id = $1
                 .num_seconds() as u64
         }),
     })
+}
+
+pub async fn get_order_stats(pool: &DbPool) -> Result<Vec<OrderStats>, sqlx::Error> {
+    let records = sqlx::query!(r#"SELECT * FROM order_stats"#)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(records
+        .into_iter()
+        .map(|r| OrderStats {
+            duration_days: r.duration_days as u32,
+            order_limit: r.order_limit as u32,
+            order_count: r.order_count.unwrap_or(0) as u32,
+        })
+        .collect())
 }

@@ -17,14 +17,27 @@ message TicketType {
     bool sold_out = 3;
 }
 
+message OrderStats {
+    uint32 duration_days = 1;
+    uint32 order_limit = 2;
+    uint32 order_count = 3;
+}
+
 service ProductService {
     rpc GetTicketTypes(GetTicketTypesRequest) returns (GetTicketTypesResponse) {}
     rpc GetTicketDurations(GetTicketDurationsRequest) returns (GetTicketDurationsResponse) {}
     rpc AddTicketToBasket(AddTicketToBasketRequest) returns (AddTicketToBasketResponse) {}
     rpc PurchaseOrder(PurchaseOrderRequest) returns (PurchaseOrderResponse) {}
     rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
+    rpc GetOrderStats(GetOrderStatsRequest) returns (stream OrderStats) {}
     // TODO
     // GetNumRemaining
+}
+
+message GetOrderStatsRequest {}
+
+message GetOrderStatsResponse {
+    repeated OrderStats order_stats = 1;
 }
 
 message GetOrderRequest {
