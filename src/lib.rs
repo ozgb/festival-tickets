@@ -1,10 +1,12 @@
+use sqlx::types::Uuid;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use pb::product_service_server::{ProductService, ProductServiceServer};
 use pb::{
-    AddTicketToBasketRequest, AddTicketToBasketResponse, GetTicketDurationsRequest,
-    GetTicketDurationsResponse, GetTicketTypesRequest, GetTicketTypesResponse,
+    AddTicketToBasketRequest, AddTicketToBasketResponse, GetOrderRequest, GetOrderResponse,
+    GetTicketDurationsRequest, GetTicketDurationsResponse, GetTicketTypesRequest,
+    GetTicketTypesResponse, PurchaseOrderRequest, PurchaseOrderResponse,
 };
 
 pub mod db;
@@ -40,7 +42,7 @@ impl ProductService for Service {
             .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
 
         Ok(Response::new(pb::AddTicketToBasketResponse {
-            ticket: Some(order),
+            order: Some(order),
         }))
     }
 
@@ -67,5 +69,53 @@ impl ProductService for Service {
                 .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?,
         };
         Ok(Response::new(reply))
+    }
+
+    async fn purchase_order(
+        &self,
+        request: Request<PurchaseOrderRequest>,
+    ) -> Result<Response<PurchaseOrderResponse>, Status> {
+        let req = request.into_inner();
+        let order_id = Uuid::parse_str(&req.id).map_err(|e| {
+            Status::new(
+                tonic::Code::InvalidArgument,
+                format!(
+                    "failed to parse order id as uuid: {}, {}",
+                    &req.id,
+                    e.to_string()
+                ),
+            )
+        })?;
+
+        let order = db::purchase_order(&self.dbpool, &order_id)
+            .await
+            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+
+        Ok(Response::new(pb::PurchaseOrderResponse {
+            order: Some(order),
+        }))
+    }
+
+    async fn get_order(
+        &self,
+        request: Request<GetOrderRequest>,
+    ) -> Result<Response<GetOrderResponse>, Status> {
+        let req = request.into_inner();
+        let order_id = Uuid::parse_str(&req.id).map_err(|e| {
+            Status::new(
+                tonic::Code::InvalidArgument,
+                format!(
+                    "failed to parse order id as uuid: {}, {}",
+                    &req.id,
+                    e.to_string()
+                ),
+            )
+        })?;
+
+        let order = db::get_order(&self.dbpool, &order_id)
+            .await
+            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+
+        Ok(Response::new(pb::GetOrderResponse { order: Some(order) }))
     }
 }

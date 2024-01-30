@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package purchase;
 
-message Ticket {
+message Order {
+    string id = 5;
     TicketType type = 1;
     uint32 duration = 2;
     float price = 3;
     uint64 reserved_until = 4;
+    optional uint64 purchased_at = 6;
 }
 
 message TicketType {
@@ -19,8 +21,26 @@ service ProductService {
     rpc GetTicketTypes(GetTicketTypesRequest) returns (GetTicketTypesResponse) {}
     rpc GetTicketDurations(GetTicketDurationsRequest) returns (GetTicketDurationsResponse) {}
     rpc AddTicketToBasket(AddTicketToBasketRequest) returns (AddTicketToBasketResponse) {}
+    rpc PurchaseOrder(PurchaseOrderRequest) returns (PurchaseOrderResponse) {}
+    rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
     // TODO
     // GetNumRemaining
+}
+
+message GetOrderRequest {
+    string id = 1;
+}
+
+message GetOrderResponse {
+    Order order = 1;
+}
+
+message PurchaseOrderRequest {
+    string id = 1;
+}
+
+message PurchaseOrderResponse {
+    Order order = 1;
 }
 
 message GetTicketTypesRequest {}
@@ -43,5 +63,5 @@ message AddTicketToBasketRequest {
 }
 
 message AddTicketToBasketResponse {
-    Ticket ticket = 1;
+    Order order = 2;
 }

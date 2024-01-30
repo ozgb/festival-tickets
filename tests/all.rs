@@ -41,7 +41,7 @@ async fn reserve_ticket() {
         .unwrap()
         .into_inner();
 
-    let ticket = res.ticket.unwrap();
+    let ticket = res.order.unwrap();
 
     assert_eq!(
         ticket.r#type.as_ref().unwrap().display,
@@ -61,4 +61,49 @@ async fn reserve_ticket() {
         ticket_reserved_time >= expected_reservation_time,
         "Check ticket is reserved for at least 9 minutes"
     );
+}
+
+#[tokio::test]
+async fn purchase_ticket() {
+    let mut client = get_client().await;
+
+    let res = client
+        .add_ticket_to_basket(test_client::pb::AddTicketToBasketRequest {
+            ticket_type_id: "chalet3".to_string(),
+            duration: 3,
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    let order = res.order.unwrap();
+
+    assert_eq!(
+        order.r#type.as_ref().unwrap().display,
+        "Chalet, 3 people".to_string()
+    );
+
+    let expected_reservation_time = chrono::Utc::now()
+        .add(chrono::Duration::minutes(9))
+        .naive_utc();
+
+    let ticket_reserved_time =
+        chrono::NaiveDateTime::from_timestamp_opt(order.reserved_until as i64, 0).unwrap();
+
+    println!("{:#?}", order);
+
+    assert!(
+        ticket_reserved_time >= expected_reservation_time,
+        "Check ticket is reserved for at least 9 minutes"
+    );
+
+    assert!(order.purchased_at.is_none());
+
+    let res = client
+        .purchase_order(test_client::pb::PurchaseOrderRequest { id: order.id })
+        .await
+        .unwrap()
+        .into_inner();
+
+    assert!(res.order.unwrap().purchased_at.is_some());
 }
