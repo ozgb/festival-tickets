@@ -2,6 +2,7 @@ mod test_client;
 use std::ops::Add;
 
 use test_client::pb::product_service_client::ProductServiceClient;
+use tokio_stream::StreamExt;
 use tonic::transport::Channel;
 
 async fn get_client() -> ProductServiceClient<Channel> {
@@ -106,4 +107,20 @@ async fn purchase_ticket() {
         .into_inner();
 
     assert!(res.order.unwrap().purchased_at.is_some());
+}
+
+#[tokio::test]
+async fn stream_order_stats() {
+    let mut client = get_client().await;
+
+    let stream = client
+        .get_order_stats(test_client::pb::GetOrderStatsRequest {})
+        .await
+        .unwrap()
+        .into_inner();
+
+    let mut stream = stream.take(6);
+    while let Some(item) = stream.next().await {
+        println!("\treceived: {:#?}", item.unwrap());
+    }
 }

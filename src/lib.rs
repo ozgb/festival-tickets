@@ -1,8 +1,11 @@
 use async_stream::stream;
 use db::DbPool;
+use futures::{future::FutureExt, pin_mut};
 use sqlx::types::Uuid;
 use std::sync::Arc;
+use tokio::select;
 use tokio::sync::broadcast;
+use tokio::time::{sleep, Duration};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::{wrappers::BroadcastStream, Stream};
 use tonic::{Request, Response, Status};
@@ -59,7 +62,23 @@ impl Service {
         mut order_stats_sub_rx: tokio::sync::mpsc::Receiver<OrderStatsSubMsg>,
     ) {
         loop {
-            // TODO: Use a select! statement here
+            let sleep_future = sleep(Duration::from_millis(500)).fuse();
+            pin_mut!(sleep_future);
+
+            // Wait for 500ms sleep, interrupt to respond to subscribe requests
+            loop {
+                select! {
+                    () = &mut sleep_future => break,
+                    msg = order_stats_sub_rx.recv() => {
+                        match msg {
+                            Some(v) => {
+                                let _ = v.resp.send(tx.subscribe());
+                            }
+                            None => (),
+                        }
+                    }
+                }
+            }
 
             match db::get_order_stats(&pool).await {
                 Ok(stats) => {
@@ -69,13 +88,6 @@ impl Service {
                     }
                 }
                 _ => (),
-            }
-
-            match order_stats_sub_rx.try_recv() {
-                Ok(v) => {
-                    let _ = v.resp.send(tx.subscribe());
-                }
-                Err(_) => (),
             }
         }
     }
