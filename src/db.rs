@@ -199,3 +199,18 @@ pub async fn get_order_stats(pool: &DbPool) -> Result<Vec<OrderStats>, sqlx::Err
         })
         .collect())
 }
+
+pub async fn remove_expired_orders(pool: &DbPool) -> Result<(), sqlx::Error> {
+    let cur_time = chrono::Utc::now();
+    sqlx::query!(
+        r#"
+DELETE FROM orders
+WHERE reserved_until < $1 AND purchased_at IS NULL
+        "#,
+        cur_time.naive_utc()
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}

@@ -46,6 +46,8 @@ impl Service {
             order_stats_sub_rx,
         ));
 
+        tokio::spawn(Self::remove_old_orders(dbpool.clone()));
+
         Self {
             dbpool,
             order_stats_sub: order_stats_sub_tx,
@@ -54,6 +56,16 @@ impl Service {
 
     pub fn into_service(self) -> ProductServiceServer<Service> {
         ProductServiceServer::new(self)
+    }
+
+    async fn remove_old_orders(pool: Arc<DbPool>) {
+        loop {
+            match db::remove_expired_orders(&pool).await {
+                Ok(_) => (),
+                Err(e) => log::error!("error removing old orders: {}", e),
+            }
+            sleep(Duration::from_secs(5)).await;
+        }
     }
 
     async fn send_order_stats(
@@ -72,7 +84,8 @@ impl Service {
                     msg = order_stats_sub_rx.recv() => {
                         match msg {
                             Some(v) => {
-                                let _ = v.resp.send(tx.subscribe());
+                                let _ = v.resp.send(tx.subscribe())
+                                    .map_err(|e| log::error!("error responding to order stats sub: {:?}", e));
                             }
                             None => (),
                         }
@@ -80,14 +93,16 @@ impl Service {
                 }
             }
 
-            match db::get_order_stats(&pool).await {
-                Ok(stats) => {
-                    for s in stats {
-                        // Ignore errors
-                        let _ = tx.send(s);
+            if tx.receiver_count() > 0 {
+                match db::get_order_stats(&pool).await {
+                    Ok(stats) => {
+                        for s in stats {
+                            // Ignore errors - this fails if there are no order stats listeners
+                            let _ = tx.send(s);
+                        }
                     }
+                    _ => (),
                 }
-                _ => (),
             }
         }
     }
