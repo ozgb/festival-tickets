@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "client example for festival-ticket app",
   "scripts": {
-    "build": "webpack --mode=development ./client.js"
+    "build": "webpack --mode=development"
   },
   "devDependencies": {
     "@grpc/grpc-js": "^1.9.14",
@@ -12,6 +12,8 @@
     "google-protobuf": "~3.14.0",
     "grpc-web": "~1.5.0",
     "lodash": "~4.17.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
     "webpack": "~5.82.1",
     "webpack-cli": "~5.1.1"
   }

@@ -10,8 +10,8 @@ test:
 # Generate client code from proto file
 gen-client:
     protoc -I=proto/ proto/purchase.proto \
-        --js_out=import_style=commonjs:frontend/ \
-        --grpc-web_out=import_style=commonjs,mode=grpcwebtext:frontend/
+        --js_out=import_style=es6:frontend/grpc/ \
+        --grpc-web_out=import_style=typescript,mode=grpcwebtext:frontend/grpc/
     cd frontend; npm run build
 
 # Run Envoy to route HTTP/1.1 to HTTP2 tonic endpoint
