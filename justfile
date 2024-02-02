@@ -14,6 +14,10 @@ gen-client:
         --grpc-web_out=import_style=typescript,mode=grpcwebtext:frontend/grpc/
     cd frontend; npm run build
 
+# Serve web client
+serve-client:
+    cd frontend; npm run serve
+
 # Run Envoy to route HTTP/1.1 to HTTP2 tonic endpoint
 envoy:
     docker run -v "$(pwd)"/envoy.yaml:/etc/envoy/envoy.yaml:ro \

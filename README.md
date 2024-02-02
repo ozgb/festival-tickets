@@ -57,3 +57,8 @@ To generate a new client after updating the gRPC spec, run:
 ```bash
 $ just gen-client
 ```
+
+To serve the frontend, run:
+```bash
+$ just serve-client
+```
