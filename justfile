@@ -10,7 +10,7 @@ test:
 # Generate client code from proto file
 gen-client:
     protoc -I=proto/ proto/purchase.proto \
-        --js_out=import_style=es6:frontend/grpc/ \
+        --js_out=import_style=commonjs:frontend/grpc/ \
         --grpc-web_out=import_style=typescript,mode=grpcwebtext:frontend/grpc/
     cd frontend; npm run build
 

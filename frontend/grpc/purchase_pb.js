@@ -11,6 +11,16 @@
 /* eslint-disable */
 // @ts-nocheck
 
+var jspb = require('google-protobuf');
+var goog = jspb;
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
+
 goog.exportSymbol('proto.purchase.AddTicketToBasketRequest', null, global);
 goog.exportSymbol('proto.purchase.AddTicketToBasketResponse', null, global);
 goog.exportSymbol('proto.purchase.GetOrderRequest', null, global);
@@ -2723,3 +2733,4 @@ proto.purchase.AddTicketToBasketResponse.prototype.hasOrder = function() {
 };
 
 
+goog.object.extend(exports, proto.purchase);
