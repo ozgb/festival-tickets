@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "client example for festival-ticket app",
   "scripts": {
-      "build": "webpack --mode=development ./client.js"
+    "build": "webpack --mode=development ./client.js"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "~1.0.5",
+    "@grpc/grpc-js": "^1.9.14",
     "@grpc/proto-loader": "~0.5.4",
     "async": "~1.5.2",
     "google-protobuf": "~3.14.0",
