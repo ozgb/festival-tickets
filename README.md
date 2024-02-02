@@ -41,3 +41,19 @@ In another:
 $ cp template.env .env
 $ cargo run
 ```
+
+### Frontend
+
+Install `protoc-gen-js`:
+
+```bash
+$ npm install -g protoc-gen-js
+```
+
+Download `protoc-gen-grpc-web`, make it executable and available on your `PATH`: [Releases](https://github.com/grpc/grpc-web/releases)
+
+To generate a new client after updating the gRPC spec, run:
+
+```bash
+$ just gen-client
+```

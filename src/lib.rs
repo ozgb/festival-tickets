@@ -114,11 +114,16 @@ impl ProductService for Service {
         &self,
         request: Request<AddTicketToBasketRequest>,
     ) -> Result<Response<AddTicketToBasketResponse>, Status> {
+        log::trace!(target: "festival_tickets::add_ticket_to_basket", "req: {:#?}", request);
         let req = request.into_inner();
         let order = db::add_ticket_to_basket(&self.dbpool, &req.ticket_type_id, req.duration)
             .await
-            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+            .map_err(|e| {
+                log::error!("{:#?}", e);
+                Status::new(tonic::Code::Internal, "failed")
+            })?;
 
+        log::trace!(target: "festival_tickets::add_ticket_to_basket", "resp: {:#?}", order);
         Ok(Response::new(pb::AddTicketToBasketResponse {
             order: Some(order),
         }))
