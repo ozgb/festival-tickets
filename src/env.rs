@@ -12,7 +12,7 @@ pub enum Cfg {
 }
 
 /// Convert CamelCase to snake_case
-fn to_snake_case(in_str: String) -> String {
+fn to_snake_case(in_str: &str) -> String {
     let (mut str_vec, last_str): (Vec<String>, String) =
         in_str.chars().fold((vec![], String::new()), |acc, el| {
             let (mut str_vec, mut cur) = acc;
@@ -48,7 +48,22 @@ impl Cfg {
         // We're using strum to convert the variant names to string, then converting to SNAKE_CASE
         // to get the env-var name.
 
-        let key: String = to_snake_case(self.to_string());
+        let key: String = to_snake_case(&self.to_string());
         dotenv::var(&key).map_err(|e| CfgError::LoadFailed(key, e.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_snake_case_convertion() {
+        assert_eq!(to_snake_case("HelloWorld"), "HELLO_WORLD".to_string());
+        assert_eq!(
+            to_snake_case("WowThisIsWeird"),
+            "WOW_THIS_IS_WEIRD".to_string()
+        );
+        assert_eq!(to_snake_case("OMG"), "O_M_G".to_string());
     }
 }

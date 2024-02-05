@@ -18,6 +18,8 @@ use pb::{
     PurchaseOrderResponse,
 };
 
+pub const CHRONO_TIMESTAMP_FMT: &'static str = "%Y-%m-%d %H:%M:%S%.f";
+
 pub mod db;
 mod env;
 pub mod error;
