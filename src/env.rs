@@ -44,6 +44,10 @@ fn to_snake_case(in_str: String) -> String {
 
 impl Cfg {
     pub fn load(&self) -> Result<String, CfgError> {
+        // Load env-vars to match attributes of Cfg enum
+        // We're using strum to convert the variant names to string, then converting to SNAKE_CASE
+        // to get the env-var name.
+
         let key: String = to_snake_case(self.to_string());
         dotenv::var(&key).map_err(|e| CfgError::LoadFailed(key, e.to_string()))
     }
