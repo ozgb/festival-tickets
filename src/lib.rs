@@ -20,6 +20,9 @@ use pb::{
 
 pub mod db;
 mod env;
+pub mod error;
+
+use error::ServiceError;
 
 type ServiceResult<T> = tonic::Result<tonic::Response<T>>;
 
@@ -117,7 +120,7 @@ impl ProductService for Service {
             .await
             .map_err(|e| {
                 log::error!("{:#?}", e);
-                Status::new(tonic::Code::Internal, "failed")
+                ServiceError::DatabaseError
             })?;
 
         Ok(Response::new(pb::AddTicketToBasketResponse {
@@ -130,9 +133,10 @@ impl ProductService for Service {
         _request: Request<GetTicketTypesRequest>,
     ) -> ServiceResult<GetTicketTypesResponse> {
         let reply = pb::GetTicketTypesResponse {
-            ticket_types: db::get_ticket_types(&self.dbpool)
-                .await
-                .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?,
+            ticket_types: db::get_ticket_types(&self.dbpool).await.map_err(|e| {
+                log::error!("{:#?}", e);
+                ServiceError::DatabaseError
+            })?,
         };
         Ok(Response::new(reply))
     }
@@ -145,7 +149,10 @@ impl ProductService for Service {
         let reply = pb::GetTicketDurationsResponse {
             ticket_durations: db::get_ticket_durations(&self.dbpool, &req.ticket_type_id)
                 .await
-                .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?,
+                .map_err(|e| {
+                    log::error!("{:#?}", e);
+                    ServiceError::DatabaseError
+                })?,
         };
         Ok(Response::new(reply))
     }
@@ -155,16 +162,15 @@ impl ProductService for Service {
         request: Request<PurchaseOrderRequest>,
     ) -> ServiceResult<PurchaseOrderResponse> {
         let req = request.into_inner();
-        let order_id = Uuid::parse_str(&req.id).map_err(|e| {
-            Status::new(
-                tonic::Code::InvalidArgument,
-                format!("failed to parse order id as uuid: {}, {}", &req.id, e),
-            )
-        })?;
+        let order_id = Uuid::parse_str(&req.id)
+            .map_err(|e| ServiceError::ParseError(format!("uuid ({})", e)))?;
 
         let order = db::purchase_order(&self.dbpool, &order_id)
             .await
-            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+            .map_err(|e| {
+                log::error!("{:#?}", e);
+                ServiceError::DatabaseError
+            })?;
 
         Ok(Response::new(pb::PurchaseOrderResponse {
             order: Some(order),
@@ -176,16 +182,13 @@ impl ProductService for Service {
         request: Request<GetOrderRequest>,
     ) -> ServiceResult<GetOrderResponse> {
         let req = request.into_inner();
-        let order_id = Uuid::parse_str(&req.id).map_err(|e| {
-            Status::new(
-                tonic::Code::InvalidArgument,
-                format!("failed to parse order id as uuid: {}, {}", &req.id, e),
-            )
-        })?;
+        let order_id = Uuid::parse_str(&req.id)
+            .map_err(|e| ServiceError::ParseError(format!("uuid ({})", e)))?;
 
-        let order = db::get_order(&self.dbpool, &order_id)
-            .await
-            .map_err(|_e| Status::new(tonic::Code::Internal, "failed"))?;
+        let order = db::get_order(&self.dbpool, &order_id).await.map_err(|e| {
+            log::error!("{:#?}", e);
+            ServiceError::DatabaseError
+        })?;
 
         Ok(Response::new(pb::GetOrderResponse { order: Some(order) }))
     }
@@ -203,16 +206,12 @@ impl ProductService for Service {
             .send(OrderStatsSubMsg { resp: tx })
             .await
             .map_err(|e| {
-                Status::new(
-                    tonic::Code::Internal,
-                    format!("failed to request new order stats stream: {}", e),
-                )
+                log::error!("failed to request new order stats stream: {}", e);
+                ServiceError::StreamStartError
             })?;
-        let stream = rx.await.map_err(|_e| {
-            Status::new(
-                tonic::Code::Internal,
-                "failed to receive new order stats stream",
-            )
+        let stream = rx.await.map_err(|e| {
+            log::error!("failed to receive new order stats stream: {}", e);
+            ServiceError::StreamStartError
         })?;
 
         let stream = BroadcastStream::new(stream);
@@ -227,7 +226,10 @@ fn map_broadcast_err_to_status<S: Stream<Item = Result<OrderStats, BroadcastStre
 ) -> impl Stream<Item = Result<OrderStats, Status>> {
     stream! {
         for await value in input {
-            yield value.map_err(|_e| Status::new(tonic::Code::Internal, "failed"))
+            yield value.map_err(|e| {
+                log::error!("failed to yield new stream item: {}", e);
+                ServiceError::StreamError.into()
+            })
         }
     }
 }
