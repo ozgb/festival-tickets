@@ -1,14 +1,18 @@
 syntax = "proto3";
 
+// Restriction - to make types convertable directly from SQLx, all response types must be flat
+// Also, only basic protobuf types are supported, i.e. no Timestamp etc.
+// See https://github.com/tokio-rs/prost/issues/876
+
 package purchase;
 
 message Order {
     string id = 5;
-    TicketType type = 1;
-    uint32 duration = 2;
+    string ticket_type_id = 7;
+    int32 duration = 2;
     float price = 3;
-    uint64 reserved_until = 4;
-    optional uint64 purchased_at = 6;
+    string reserved_until = 8;
+    optional string purchased_at = 9;
 }
 
 message TicketType {
@@ -18,9 +22,9 @@ message TicketType {
 }
 
 message OrderStats {
-    uint32 duration_days = 1;
-    uint32 order_limit = 2;
-    uint32 order_count = 3;
+    int32 duration_days = 4;
+    int32 order_limit = 5;
+    int32 order_count = 6;
 }
 
 service ProductService {
@@ -67,12 +71,12 @@ message GetTicketDurationsRequest {
 }
 
 message GetTicketDurationsResponse {
-    repeated uint32 ticket_durations = 2;
+    repeated int32 ticket_durations = 3;
 }
 
 message AddTicketToBasketRequest {
     string ticket_type_id = 3;
-    uint32 duration = 4;
+    int32 duration = 5;
 }
 
 message AddTicketToBasketResponse {

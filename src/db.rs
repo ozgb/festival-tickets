@@ -35,7 +35,7 @@ pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx
     Ok(ticket_types)
 }
 
-pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<u32>, sqlx::Error> {
+pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<i32>, sqlx::Error> {
     let rows = sqlx::query!("SELECT * FROM order_stats")
         .fetch_all(pool)
         .await?;
@@ -43,7 +43,7 @@ pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<u
     let mut durations = vec![];
     for row in rows {
         if row.order_limit > row.order_count.unwrap_or(0) {
-            durations.push(row.duration_days as u32);
+            durations.push(row.duration_days);
         }
     }
 
@@ -53,9 +53,10 @@ pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<u
 pub async fn add_ticket_to_basket(
     pool: &DbPool,
     type_id: &str,
-    duration: u32,
+    duration: i32,
 ) -> Result<pb::Order, sqlx::Error> {
-    let record = sqlx::query!(
+    let order = sqlx::query_as!(
+        pb::Order,
         r#"
 WITH ord as (
         INSERT INTO orders (ticket_type, reserved_until, duration_days)
@@ -63,12 +64,12 @@ WITH ord as (
         RETURNING *
     )
 SELECT 
-    tt.id as ticket_type_id,
-    tt.display as ticket_type_display,
-    ord.id as order_id,
-    ord.reserved_until as order_reserved_until,
-    ord.purchased_at as order_purchased_at,
-    ord.duration_days as duration_days
+    ord.id::text as "id!",
+    tt.id as "ticket_type_id!",
+    ord.duration_days::integer as "duration!",
+    44.0::real as "price!",
+    ord.reserved_until::text as "reserved_until!",
+    ord.purchased_at::text as purchased_at
 FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
@@ -81,28 +82,12 @@ JOIN ord ON tt.id = ord.ticket_type
     .fetch_one(pool)
     .await?;
 
-    Ok(pb::Order {
-        id: record.order_id.unwrap().to_string(),
-        r#type: Some(pb::TicketType {
-            id: record.ticket_type_id.clone(),
-            display: record.ticket_type_display.unwrap_or(record.ticket_type_id),
-            sold_out: false,
-        }),
-        duration: record.duration_days.unwrap() as u32,
-        price: 0f32,
-        reserved_until: record
-            .order_reserved_until
-            .signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-            .num_seconds() as u64,
-        purchased_at: record.order_purchased_at.map(|p| {
-            p.signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-                .num_seconds() as u64
-        }),
-    })
+    Ok(order)
 }
 
 pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx::Error> {
-    let record = sqlx::query!(
+    let order = sqlx::query_as!(
+        pb::Order,
         r#"
 with ord as (
     UPDATE orders
@@ -111,12 +96,12 @@ with ord as (
     RETURNING *
     )
 SELECT
-    tt.id as ticket_type_id,
-    tt.display as ticket_type_display,
-    ord.id as order_id,
-    ord.reserved_until as order_reserved_until,
-    ord.purchased_at as order_purchased_at,
-    ord.duration_days as duration_days
+    ord.id::text as "id!",
+    tt.id as "ticket_type_id!",
+    ord.duration_days::integer as "duration!",
+    44.0::real as "price!",
+    ord.reserved_until::text as "reserved_until!",
+    ord.purchased_at::text as purchased_at
 FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
@@ -126,36 +111,20 @@ JOIN ord ON tt.id = ord.ticket_type
     .fetch_one(pool)
     .await?;
 
-    Ok(pb::Order {
-        id: record.order_id.unwrap().to_string(),
-        r#type: Some(pb::TicketType {
-            id: record.ticket_type_id.clone(),
-            display: record.ticket_type_display.unwrap_or(record.ticket_type_id),
-            sold_out: false,
-        }),
-        duration: record.duration_days.unwrap() as u32,
-        price: 0f32,
-        reserved_until: record
-            .order_reserved_until
-            .signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-            .num_seconds() as u64,
-        purchased_at: record.order_purchased_at.map(|p| {
-            p.signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-                .num_seconds() as u64
-        }),
-    })
+    Ok(order)
 }
 
 pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx::Error> {
-    let record = sqlx::query!(
+    let order = sqlx::query_as!(
+        pb::Order,
         r#"
 SELECT
-    tt.id as ticket_type_id,
-    tt.display as ticket_type_display,
-    ord.id as order_id,
-    ord.reserved_until as order_reserved_until,
-    ord.duration_days as duration_days,
-    ord.purchased_at as order_purchased_at
+    ord.id::text as "id!",
+    tt.id as "ticket_type_id!",
+    ord.duration_days::integer as "duration!",
+    44.0::real as "price!",
+    ord.reserved_until::text as "reserved_until!",
+    ord.purchased_at::text as purchased_at
 FROM orders as ord
 JOIN ticket_types as tt ON tt.id = ord.ticket_type
 WHERE ord.id = $1
@@ -165,39 +134,23 @@ WHERE ord.id = $1
     .fetch_one(pool)
     .await?;
 
-    Ok(pb::Order {
-        id: record.order_id.unwrap().to_string(),
-        r#type: Some(pb::TicketType {
-            id: record.ticket_type_id.clone(),
-            display: record.ticket_type_display.unwrap_or(record.ticket_type_id),
-            sold_out: false,
-        }),
-        duration: record.duration_days.unwrap() as u32,
-        price: 0f32,
-        reserved_until: record
-            .order_reserved_until
-            .signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-            .num_seconds() as u64,
-        purchased_at: record.order_purchased_at.map(|p| {
-            p.signed_duration_since(chrono::NaiveDateTime::UNIX_EPOCH)
-                .num_seconds() as u64
-        }),
-    })
+    Ok(order)
 }
 
 pub async fn get_order_stats(pool: &DbPool) -> Result<Vec<OrderStats>, sqlx::Error> {
-    let records = sqlx::query!(r#"SELECT * FROM order_stats"#)
-        .fetch_all(pool)
-        .await?;
+    let order_stats = sqlx::query_as!(
+        pb::OrderStats,
+        r#"
+SELECT
+    duration_days::integer as "duration_days!",
+    order_limit::integer as "order_limit!",
+    order_count::integer as "order_count!"
+FROM order_stats"#
+    )
+    .fetch_all(pool)
+    .await?;
 
-    Ok(records
-        .into_iter()
-        .map(|r| OrderStats {
-            duration_days: r.duration_days as u32,
-            order_limit: r.order_limit as u32,
-            order_count: r.order_count.unwrap_or(0) as u32,
-        })
-        .collect())
+    Ok(order_stats)
 }
 
 pub async fn remove_expired_orders(pool: &DbPool) -> Result<(), sqlx::Error> {
