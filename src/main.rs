@@ -17,6 +17,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let service = Service::new(Arc::new(pool)).into_service();
 
+    // Note: To connect via gRPC-web, an external proxy must be used (i.e. Envoy)
+    // tonic_web supports http1 requests, but it's not well supported - CORS config is annoying
+    // See https://github.com/hyperium/tonic/issues/1524
     log::info!("server listening on {}", addr);
 
     Server::builder().add_service(service).serve(addr).await?;

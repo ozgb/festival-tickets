@@ -21,6 +21,8 @@ use pb::{
 pub mod db;
 mod env;
 
+type ServiceResult<T> = tonic::Result<tonic::Response<T>>;
+
 pub mod pb {
     tonic::include_proto!("purchase");
 }
@@ -82,27 +84,23 @@ impl Service {
                 select! {
                     () = &mut sleep_future => break,
                     msg = order_stats_sub_rx.recv() => {
-                        match msg {
-                            Some(v) => {
-                                let _ = v.resp.send(tx.subscribe())
-                                    .map_err(|e| log::error!("error responding to order stats sub: {:?}", e));
-                            }
-                            None => (),
+                        if let Some(v) = msg {
+                            let _ = v.resp.send(tx.subscribe())
+                                .map_err(|e| log::error!("error responding to order stats sub: {:?}", e));
                         }
                     }
                 }
             }
 
             if tx.receiver_count() > 0 {
-                match db::get_order_stats(&pool).await {
-                    Ok(stats) => {
-                        for s in stats {
-                            // Ignore errors - this fails if there are no order stats listeners
-                            let _ = tx.send(s);
-                        }
-                    }
-                    _ => (),
-                }
+                db::get_order_stats(&pool)
+                    .await
+                    .unwrap_or(vec![])
+                    .into_iter()
+                    .for_each(|s| {
+                        // Ignore errors - this fails if there are no order stats listeners
+                        let _ = tx.send(s);
+                    })
             }
         }
     }
@@ -113,8 +111,7 @@ impl ProductService for Service {
     async fn add_ticket_to_basket(
         &self,
         request: Request<AddTicketToBasketRequest>,
-    ) -> Result<Response<AddTicketToBasketResponse>, Status> {
-        log::trace!(target: "festival_tickets::add_ticket_to_basket", "req: {:#?}", request);
+    ) -> ServiceResult<AddTicketToBasketResponse> {
         let req = request.into_inner();
         let order = db::add_ticket_to_basket(&self.dbpool, &req.ticket_type_id, req.duration)
             .await
@@ -123,7 +120,6 @@ impl ProductService for Service {
                 Status::new(tonic::Code::Internal, "failed")
             })?;
 
-        log::trace!(target: "festival_tickets::add_ticket_to_basket", "resp: {:#?}", order);
         Ok(Response::new(pb::AddTicketToBasketResponse {
             order: Some(order),
         }))
@@ -132,7 +128,7 @@ impl ProductService for Service {
     async fn get_ticket_types(
         &self,
         _request: Request<GetTicketTypesRequest>,
-    ) -> Result<Response<GetTicketTypesResponse>, Status> {
+    ) -> ServiceResult<GetTicketTypesResponse> {
         let reply = pb::GetTicketTypesResponse {
             ticket_types: db::get_ticket_types(&self.dbpool)
                 .await
@@ -144,7 +140,7 @@ impl ProductService for Service {
     async fn get_ticket_durations(
         &self,
         request: Request<GetTicketDurationsRequest>,
-    ) -> Result<Response<GetTicketDurationsResponse>, Status> {
+    ) -> ServiceResult<GetTicketDurationsResponse> {
         let req = request.into_inner();
         let reply = pb::GetTicketDurationsResponse {
             ticket_durations: db::get_ticket_durations(&self.dbpool, &req.ticket_type_id)
@@ -157,16 +153,12 @@ impl ProductService for Service {
     async fn purchase_order(
         &self,
         request: Request<PurchaseOrderRequest>,
-    ) -> Result<Response<PurchaseOrderResponse>, Status> {
+    ) -> ServiceResult<PurchaseOrderResponse> {
         let req = request.into_inner();
         let order_id = Uuid::parse_str(&req.id).map_err(|e| {
             Status::new(
                 tonic::Code::InvalidArgument,
-                format!(
-                    "failed to parse order id as uuid: {}, {}",
-                    &req.id,
-                    e.to_string()
-                ),
+                format!("failed to parse order id as uuid: {}, {}", &req.id, e),
             )
         })?;
 
@@ -182,16 +174,12 @@ impl ProductService for Service {
     async fn get_order(
         &self,
         request: Request<GetOrderRequest>,
-    ) -> Result<Response<GetOrderResponse>, Status> {
+    ) -> ServiceResult<GetOrderResponse> {
         let req = request.into_inner();
         let order_id = Uuid::parse_str(&req.id).map_err(|e| {
             Status::new(
                 tonic::Code::InvalidArgument,
-                format!(
-                    "failed to parse order id as uuid: {}, {}",
-                    &req.id,
-                    e.to_string()
-                ),
+                format!("failed to parse order id as uuid: {}, {}", &req.id, e),
             )
         })?;
 
@@ -208,7 +196,7 @@ impl ProductService for Service {
     async fn get_order_stats(
         &self,
         _request: Request<GetOrderStatsRequest>,
-    ) -> Result<Response<Self::GetOrderStatsStream>, Status> {
+    ) -> ServiceResult<Self::GetOrderStatsStream> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.order_stats_sub
             .clone()

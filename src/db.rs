@@ -14,10 +14,10 @@ pub type DbPool = sqlx::Pool<Postgres>;
 
 pub async fn connect_to_pool() -> DbPool {
     let db_url = env::Cfg::DatabaseUrl.load().expect("Failed to load db url");
-    let pool = DbPool::connect(&db_url)
+
+    DbPool::connect(&db_url)
         .await
-        .expect("Failed to connect to pool");
-    pool
+        .expect("Failed to connect to pool")
 }
 
 pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx::Error> {

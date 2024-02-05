@@ -1,4 +1,3 @@
-use dotenv;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,7 +16,7 @@ fn to_snake_case(in_str: String) -> String {
     let (mut str_vec, last_str): (Vec<String>, String) =
         in_str.chars().fold((vec![], String::new()), |acc, el| {
             let (mut str_vec, mut cur) = acc;
-            if el.is_ascii_uppercase() && cur.len() != 0 {
+            if el.is_ascii_uppercase() && !cur.is_empty() {
                 str_vec.push(cur);
                 let cur: String = el.into();
                 (str_vec, cur)
