@@ -1,5 +1,9 @@
 set dotenv-load
 
+# Default recipe
+default:
+    just -l
+
 # Clear and seed the database, then run all tests
 test:
     sqlx migrate revert --target-version 0
