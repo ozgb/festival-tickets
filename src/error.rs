@@ -1,6 +1,8 @@
 use thiserror::Error;
 use tonic::Code;
 
+use crate::db::error::DbError;
+
 #[derive(Error, Debug)]
 pub enum ServiceError {
     #[error("parse error: {0}")]
@@ -15,6 +17,16 @@ pub enum ServiceError {
     FailedPrecondition(String),
     #[error("unknown service error")]
     Unknown,
+}
+
+impl From<DbError> for ServiceError {
+    fn from(value: DbError) -> Self {
+        match value {
+            DbError::Unknown => ServiceError::Unknown,
+            DbError::ExecutionError(e) => ServiceError::DatabaseError(e),
+            DbError::FailedPrecondition(e) => ServiceError::FailedPrecondition(e),
+        }
+    }
 }
 
 impl<'a> From<&'a ServiceError> for Code {

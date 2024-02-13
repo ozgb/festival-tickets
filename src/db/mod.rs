@@ -13,6 +13,11 @@ use sqlx::Row;
 
 pub type DbPool = sqlx::Pool<Postgres>;
 
+pub mod error;
+use error::DbError;
+
+pub type DbResult<T> = Result<T, DbError>;
+
 pub async fn connect_to_pool() -> DbPool {
     let db_url = env::Cfg::DatabaseUrl.load().expect("Failed to load db url");
 
@@ -21,7 +26,7 @@ pub async fn connect_to_pool() -> DbPool {
         .expect("Failed to connect to pool")
 }
 
-pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx::Error> {
+pub async fn get_ticket_types(pool: &DbPool) -> DbResult<Vec<pb::TicketType>> {
     let mut rows = sqlx::query("SELECT * FROM ticket_types").fetch(pool);
 
     let mut ticket_types = Vec::new();
@@ -36,7 +41,7 @@ pub async fn get_ticket_types(pool: &DbPool) -> Result<Vec<pb::TicketType>, sqlx
     Ok(ticket_types)
 }
 
-pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> Result<Vec<i32>, sqlx::Error> {
+pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> DbResult<Vec<i32>> {
     let rows = sqlx::query!("SELECT * FROM order_stats")
         .fetch_all(pool)
         .await?;
@@ -55,7 +60,7 @@ pub async fn add_ticket_to_basket(
     pool: &DbPool,
     type_id: &str,
     duration: i32,
-) -> Result<pb::Order, sqlx::Error> {
+) -> DbResult<pb::Order> {
     let order = sqlx::query_as!(
         pb::Order,
         r#"
@@ -87,8 +92,17 @@ JOIN ord ON tt.id = ord.ticket_type
     Ok(order)
 }
 
-pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx::Error> {
-    // TODO: Check if order is missing a user
+pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> DbResult<pb::Order> {
+    let precond = sqlx::query!("SELECT user_id FROM orders WHERE id = $1", order_id)
+        .fetch_one(pool)
+        .await?;
+
+    if precond.user_id.is_none() {
+        return Err(DbError::FailedPrecondition(format!(
+            "user info missing from order {}",
+            order_id
+        )));
+    }
 
     let order = sqlx::query_as!(
         pb::Order,
@@ -119,7 +133,7 @@ JOIN ord ON tt.id = ord.ticket_type
     Ok(order)
 }
 
-pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx::Error> {
+pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> DbResult<pb::Order> {
     let order = sqlx::query_as!(
         pb::Order,
         r#"
@@ -143,18 +157,19 @@ WHERE ord.id = $1
     Ok(order)
 }
 
-pub async fn get_user(pool: &DbPool, user_id: &Uuid) -> Result<pb::User, sqlx::Error> {
+pub async fn get_user(pool: &DbPool, user_id: &Uuid) -> DbResult<pb::User> {
     let user = sqlx::query_as!(
         pb::User,
         r#"
 SELECT
-    id::text as "id!",
-    name as "name!",
-    address as "address!",
-    email as "email!",
-    order_id::text as "order_id!"
+    users.id::text as "id!",
+    users.name as "name!",
+    users.address as "address!",
+    users.email as "email!",
+    ord.id as "order_id!"
 FROM users
-WHERE id = $1
+JOIN orders AS ord ON ord.user_id = users.id
+WHERE users.id = $1
         "#,
         user_id
     )
@@ -168,7 +183,7 @@ pub async fn add_user_to_order(
     pool: &DbPool,
     order_id: &Uuid,
     req: &AddUserInfoRequest,
-) -> Result<pb::Order, sqlx::Error> {
+) -> DbResult<pb::Order> {
     // TODO: Check if order already has a user attached
 
     let mut tx = pool.begin().await?;
@@ -181,7 +196,20 @@ RETURNING *
         "#,
         req.user_name,
         req.user_address,
-        req.user_email,
+        req.user_email
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let _update = sqlx::query!(
+        r#"
+UPDATE orders
+SET user_id = $2
+WHERE id = $1
+RETURNING *
+        "#,
+        order_id,
+        user.id
     )
     .fetch_one(&mut *tx)
     .await?;
@@ -189,13 +217,6 @@ RETURNING *
     let order = sqlx::query_as!(
         pb::Order,
         r#"
-WITH 
-    ord as (
-        UPDATE orders
-        SET user_id = $2
-        WHERE id = $1
-        RETURNING *
-    )
 SELECT 
     ord.id::text as "id!",
     tt.id as "ticket_type_id!",
@@ -204,19 +225,21 @@ SELECT
     44.0::real as "price!",
     ord.reserved_until::text as "reserved_until!",
     ord.purchased_at::text as purchased_at
-FROM ord
+FROM orders as ord
 JOIN ticket_types as tt ON tt.id = ord.ticket_type
+WHERE ord.id = $1
         "#,
-        order_id,
-        user.id
+        order_id
     )
     .fetch_one(&mut *tx)
     .await?;
 
+    tx.commit().await?;
+
     Ok(order)
 }
 
-pub async fn get_order_stats(pool: &DbPool) -> Result<Vec<OrderStats>, sqlx::Error> {
+pub async fn get_order_stats(pool: &DbPool) -> DbResult<Vec<OrderStats>> {
     let order_stats = sqlx::query_as!(
         pb::OrderStats,
         r#"
@@ -232,7 +255,7 @@ FROM order_stats"#
     Ok(order_stats)
 }
 
-pub async fn remove_expired_orders(pool: &DbPool) -> Result<(), sqlx::Error> {
+pub async fn remove_expired_orders(pool: &DbPool) -> DbResult<()> {
     let cur_time = chrono::Utc::now();
     sqlx::query!(
         r#"

@@ -3,8 +3,7 @@ CREATE TABLE users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     address text NOT NULL,
-    email text NOT NULL,
-    order_id text NOT NULL
+    email text NOT NULL
 );
 
 -- Add user_id to orders table with foreign key constraint

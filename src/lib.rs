@@ -122,7 +122,7 @@ impl ProductService for Service {
             .await
             .map_err(|e| {
                 log::error!("{:#?}", e);
-                ServiceError::DatabaseError(e)
+                ServiceError::from(e)
             })?;
 
         Ok(Response::new(pb::AddTicketToBasketResponse {
@@ -137,7 +137,7 @@ impl ProductService for Service {
         let reply = pb::GetTicketTypesResponse {
             ticket_types: db::get_ticket_types(&self.dbpool).await.map_err(|e| {
                 log::error!("{:#?}", e);
-                ServiceError::DatabaseError(e)
+                ServiceError::from(e)
             })?,
         };
         Ok(Response::new(reply))
@@ -153,7 +153,7 @@ impl ProductService for Service {
                 .await
                 .map_err(|e| {
                     log::error!("{:#?}", e);
-                    ServiceError::DatabaseError(e)
+                    ServiceError::from(e)
                 })?,
         };
         Ok(Response::new(reply))
@@ -171,7 +171,7 @@ impl ProductService for Service {
             .await
             .map_err(|e| {
                 log::error!("{:#?}", e);
-                ServiceError::DatabaseError(e)
+                ServiceError::from(e)
             })?;
 
         Ok(Response::new(pb::PurchaseOrderResponse {
@@ -189,7 +189,7 @@ impl ProductService for Service {
 
         let order = db::get_order(&self.dbpool, &order_id).await.map_err(|e| {
             log::error!("{:#?}", e);
-            ServiceError::DatabaseError(e)
+            ServiceError::from(e)
         })?;
 
         Ok(Response::new(pb::GetOrderResponse { order: Some(order) }))
@@ -202,7 +202,7 @@ impl ProductService for Service {
 
         let user = db::get_user(&self.dbpool, &user_id).await.map_err(|e| {
             log::error!("{:#?}", e);
-            ServiceError::DatabaseError(e)
+            ServiceError::from(e)
         })?;
 
         Ok(Response::new(pb::GetUserResponse { user: Some(user) }))
@@ -221,7 +221,7 @@ impl ProductService for Service {
             .await
             .map_err(|e| {
                 log::error!("{:#?}", e);
-                ServiceError::DatabaseError(e)
+                ServiceError::from(e)
             })?;
 
         Ok(Response::new(pb::AddUserInfoResponse {

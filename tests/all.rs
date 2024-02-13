@@ -103,6 +103,40 @@ async fn purchase_ticket() {
     assert!(order.purchased_at.is_none());
 
     let res = client
+        .purchase_order(test_client::pb::PurchaseOrderRequest {
+            id: order.id.clone(),
+        })
+        .await;
+
+    // Assert that attempting to purchase order before adding user info fails pre-condition
+    assert!(res.is_err());
+
+    // Add user to order
+    let res = client
+        .add_user_info(test_client::pb::AddUserInfoRequest {
+            user_name: "Oscar".to_string(),
+            user_email: "oscar@oscar.com".to_string(),
+            user_address: "22 Oscar St, Dorset, UK".to_string(),
+            order_id: order.id.clone(),
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    assert!(res.order.unwrap().user_id.is_some());
+
+    // Get order
+    let res = client
+        .get_order(test_client::pb::GetOrderRequest {
+            id: order.id.clone(),
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    assert!(res.order.unwrap().user_id.is_some());
+
+    let res = client
         .purchase_order(test_client::pb::PurchaseOrderRequest { id: order.id })
         .await
         .unwrap()
