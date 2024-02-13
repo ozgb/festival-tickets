@@ -9,10 +9,19 @@ package purchase;
 message Order {
     string id = 5;
     string ticket_type_id = 7;
+    optional string user_id = 10;
     int32 duration = 2;
     float price = 3;
     string reserved_until = 8;
     optional string purchased_at = 9;
+}
+
+message User {
+    string id = 1;
+    string name = 2;
+    string address = 3;
+    string email = 4;
+    string order_id = 5;
 }
 
 message TicketType {
@@ -31,9 +40,11 @@ service ProductService {
     rpc GetTicketTypes(GetTicketTypesRequest) returns (GetTicketTypesResponse) {}
     rpc GetTicketDurations(GetTicketDurationsRequest) returns (GetTicketDurationsResponse) {}
     rpc AddTicketToBasket(AddTicketToBasketRequest) returns (AddTicketToBasketResponse) {}
+    rpc AddUserInfo(AddUserInfoRequest) returns (AddUserInfoResponse) {}
     rpc PurchaseOrder(PurchaseOrderRequest) returns (PurchaseOrderResponse) {}
     rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
     rpc GetOrderStats(GetOrderStatsRequest) returns (stream OrderStats) {}
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
     // TODO
     // GetNumRemaining
 }
@@ -49,6 +60,25 @@ message GetOrderRequest {
 }
 
 message GetOrderResponse {
+    Order order = 1;
+}
+
+message GetUserRequest {
+    string id = 1;
+}
+
+message GetUserResponse {
+    User user = 1;
+}
+
+message AddUserInfoRequest {
+    string order_id = 1;
+    string user_name = 2;
+    string user_address = 3;
+    string user_email = 4;
+}
+
+message AddUserInfoResponse {
     Order order = 1;
 }
 

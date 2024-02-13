@@ -10,7 +10,9 @@ pub enum ServiceError {
     #[error("stream error")]
     StreamError,
     #[error("database error")]
-    DatabaseError,
+    DatabaseError(#[from] sqlx::Error),
+    #[error("failed precondition: {0}")]
+    FailedPrecondition(String),
     #[error("unknown service error")]
     Unknown,
 }
@@ -21,7 +23,8 @@ impl<'a> From<&'a ServiceError> for Code {
             ServiceError::ParseError(_) => Code::InvalidArgument,
             ServiceError::StreamStartError => Code::Internal,
             ServiceError::StreamError => Code::Internal,
-            ServiceError::DatabaseError => Code::Internal,
+            ServiceError::DatabaseError(_e) => Code::Internal,
+            ServiceError::FailedPrecondition(_s) => Code::FailedPrecondition,
             ServiceError::Unknown => Code::Unknown,
         }
     }

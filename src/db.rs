@@ -1,5 +1,6 @@
 use std::ops::Add;
 
+use crate::pb::AddUserInfoRequest;
 use crate::pb::OrderStats;
 
 use super::env;
@@ -66,6 +67,7 @@ WITH ord as (
 SELECT 
     ord.id::text as "id!",
     tt.id as "ticket_type_id!",
+    ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
     ord.reserved_until::text as "reserved_until!",
@@ -86,6 +88,8 @@ JOIN ord ON tt.id = ord.ticket_type
 }
 
 pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx::Error> {
+    // TODO: Check if order is missing a user
+
     let order = sqlx::query_as!(
         pb::Order,
         r#"
@@ -98,6 +102,7 @@ with ord as (
 SELECT
     ord.id::text as "id!",
     tt.id as "ticket_type_id!",
+    ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
     ord.reserved_until::text as "reserved_until!",
@@ -121,6 +126,7 @@ pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> Result<pb::Order, sqlx
 SELECT
     ord.id::text as "id!",
     tt.id as "ticket_type_id!",
+    ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
     ord.reserved_until::text as "reserved_until!",
@@ -132,6 +138,79 @@ WHERE ord.id = $1
         order_id
     )
     .fetch_one(pool)
+    .await?;
+
+    Ok(order)
+}
+
+pub async fn get_user(pool: &DbPool, user_id: &Uuid) -> Result<pb::User, sqlx::Error> {
+    let user = sqlx::query_as!(
+        pb::User,
+        r#"
+SELECT
+    id::text as "id!",
+    name as "name!",
+    address as "address!",
+    email as "email!",
+    order_id::text as "order_id!"
+FROM users
+WHERE id = $1
+        "#,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(user)
+}
+
+pub async fn add_user_to_order(
+    pool: &DbPool,
+    order_id: &Uuid,
+    req: &AddUserInfoRequest,
+) -> Result<pb::Order, sqlx::Error> {
+    // TODO: Check if order already has a user attached
+
+    let mut tx = pool.begin().await?;
+
+    let user = sqlx::query!(
+        r#"
+INSERT INTO users (name, address, email)
+VALUES ($1, $2, $3)
+RETURNING *
+        "#,
+        req.user_name,
+        req.user_address,
+        req.user_email,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let order = sqlx::query_as!(
+        pb::Order,
+        r#"
+WITH 
+    ord as (
+        UPDATE orders
+        SET user_id = $2
+        WHERE id = $1
+        RETURNING *
+    )
+SELECT 
+    ord.id::text as "id!",
+    tt.id as "ticket_type_id!",
+    ord.user_id::text as "user_id",
+    ord.duration_days::integer as "duration!",
+    44.0::real as "price!",
+    ord.reserved_until::text as "reserved_until!",
+    ord.purchased_at::text as purchased_at
+FROM ord
+JOIN ticket_types as tt ON tt.id = ord.ticket_type
+        "#,
+        order_id,
+        user.id
+    )
+    .fetch_one(&mut *tx)
     .await?;
 
     Ok(order)

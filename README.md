@@ -62,3 +62,13 @@ To serve the frontend, run:
 ```bash
 $ just serve-client
 ```
+
+# Notes
+
+Roughly following the architecture of Stripe, the flow of the payment system would be as follows:
+
+- Once the order is completed, the user is directed to a payment page hosted by the payment provider
+- On success or failure, the user is directed to a success/failure page
+- Stripe calls a webhook on our app, the order is marked as success/failure, and an email is sent out
+
+This part of the application could be entirely separated from the load-bearing new-user facing purchase API
