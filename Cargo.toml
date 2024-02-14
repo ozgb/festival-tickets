@@ -1,5 +1,4 @@
 [workspace]
 
-members = [
-    "tonic",
-]
+members = ["actix", "tonic"]
+resolver = "2"

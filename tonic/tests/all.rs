@@ -54,7 +54,7 @@ async fn reserve_ticket() {
 
     let ticket_reserved_time = chrono::NaiveDateTime::parse_from_str(
         &ticket.reserved_until,
-        festival_tickets::CHRONO_TIMESTAMP_FMT,
+        festival_tickets_tonic::CHRONO_TIMESTAMP_FMT,
     )
     .unwrap();
 
@@ -89,7 +89,7 @@ async fn purchase_ticket() {
 
     let ticket_reserved_time = chrono::NaiveDateTime::parse_from_str(
         &order.reserved_until,
-        festival_tickets::CHRONO_TIMESTAMP_FMT,
+        festival_tickets_tonic::CHRONO_TIMESTAMP_FMT,
     )
     .unwrap();
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use festival_tickets::Service;
+use festival_tickets_tonic::Service;
 use tonic::transport::Server;
 
 #[tokio::main]
@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = "0.0.0.0:50051".parse().unwrap();
     log::info!("connecting to db...");
-    let pool = festival_tickets::db::connect_to_pool().await;
+    let pool = festival_tickets_tonic::db::connect_to_pool().await;
     // Run database migrations
     sqlx::migrate!("../migrations").run(&pool).await?;
 
