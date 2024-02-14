@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::info!("connecting to db...");
     let pool = festival_tickets::db::connect_to_pool().await;
     // Run database migrations
-    sqlx::migrate!().run(&pool).await?;
+    sqlx::migrate!("../migrations").run(&pool).await?;
 
     let service = Service::new(Arc::new(pool)).into_service();
 
