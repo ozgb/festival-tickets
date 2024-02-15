@@ -1,5 +1,7 @@
 use std::ops::Add;
 
+use crate::api::{AddUserInfoRequest, Order, OrderStats, TicketType, User};
+
 use super::env;
 use chrono;
 use futures::TryStreamExt;
@@ -22,12 +24,12 @@ pub async fn connect_to_pool() -> DbPool {
         .expect("Failed to connect to pool")
 }
 
-pub async fn get_ticket_types(pool: &DbPool) -> DbResult<Vec<super::TicketType>> {
+pub async fn get_ticket_types(pool: &DbPool) -> DbResult<Vec<TicketType>> {
     let mut rows = sqlx::query("SELECT * FROM ticket_types").fetch(pool);
 
     let mut ticket_types = Vec::new();
     while let Some(row) = rows.try_next().await? {
-        ticket_types.push(super::TicketType {
+        ticket_types.push(TicketType {
             id: row.try_get::<Uuid, _>("id")?,
             display: row.try_get::<String, _>("display")?,
             sold_out: false,
@@ -52,13 +54,9 @@ pub async fn get_ticket_durations(pool: &DbPool, _type_id: &str) -> DbResult<Vec
     Ok(durations)
 }
 
-pub async fn add_ticket_to_basket(
-    pool: &DbPool,
-    type_id: &str,
-    duration: i32,
-) -> DbResult<super::Order> {
+pub async fn add_ticket_to_basket(pool: &DbPool, type_id: &str, duration: i32) -> DbResult<Order> {
     let order = sqlx::query_as!(
-        super::Order,
+        Order,
         r#"
 WITH ord as (
         INSERT INTO orders (ticket_type, reserved_until, duration_days)
@@ -88,7 +86,7 @@ JOIN ord ON tt.id = ord.ticket_type
     Ok(order)
 }
 
-pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> DbResult<super::Order> {
+pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> DbResult<Order> {
     let precond = sqlx::query!("SELECT user_id FROM orders WHERE id = $1", order_id)
         .fetch_one(pool)
         .await?;
@@ -101,7 +99,7 @@ pub async fn purchase_order(pool: &DbPool, order_id: &Uuid) -> DbResult<super::O
     }
 
     let order = sqlx::query_as!(
-        super::Order,
+        Order,
         r#"
 with ord as (
     UPDATE orders
@@ -129,9 +127,9 @@ JOIN ord ON tt.id = ord.ticket_type
     Ok(order)
 }
 
-pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> DbResult<super::Order> {
+pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> DbResult<Order> {
     let order = sqlx::query_as!(
-        super::Order,
+        Order,
         r#"
 SELECT
     ord.id as "id!",
@@ -153,9 +151,9 @@ WHERE ord.id = $1
     Ok(order)
 }
 
-pub async fn get_user(pool: &DbPool, user_id: &Uuid) -> DbResult<super::User> {
+pub async fn get_user(pool: &DbPool, user_id: &Uuid) -> DbResult<User> {
     let user = sqlx::query_as!(
-        super::User,
+        User,
         r#"
 SELECT
     users.id as "id!",
@@ -178,8 +176,8 @@ WHERE users.id = $1
 pub async fn add_user_to_order(
     pool: &DbPool,
     order_id: &Uuid,
-    req: &super::AddUserInfoRequest,
-) -> DbResult<super::Order> {
+    req: &AddUserInfoRequest,
+) -> DbResult<Order> {
     // TODO: Check if order already has a user attached
 
     let mut tx = pool.begin().await?;
@@ -211,7 +209,7 @@ RETURNING *
     .await?;
 
     let order = sqlx::query_as!(
-        super::Order,
+        Order,
         r#"
 SELECT 
     ord.id as "id!",
@@ -235,9 +233,9 @@ WHERE ord.id = $1
     Ok(order)
 }
 
-pub async fn get_order_stats(pool: &DbPool) -> DbResult<Vec<super::OrderStats>> {
+pub async fn get_order_stats(pool: &DbPool) -> DbResult<Vec<OrderStats>> {
     let order_stats = sqlx::query_as!(
-        super::OrderStats,
+        OrderStats,
         r#"
 SELECT
     duration_days::integer as "duration_days!",

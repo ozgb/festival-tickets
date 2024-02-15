@@ -19,3 +19,4 @@ thiserror = "1.0.56"
 uuid = { version = "1.7.0", features = ["serde"] }
 strum = "0.25.0"
 strum_macros = "0.25.3"
+utoipa = { version = "4", features = ["actix_extras"] }
