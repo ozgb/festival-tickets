@@ -4,10 +4,41 @@ use uuid::Uuid;
 use crate::db;
 pub mod types;
 
-use types::{AddTicketToBasketRequest, AddUserInfoRequest};
+use types::{AddTicketToBasketRequest, AddUserInfoRequest, ApiError};
 
 type WebResult<T> = actix_web::Result<T>;
 
+pub(super) fn configure(pool: web::Data<db::DbPool>) -> impl FnOnce(&mut web::ServiceConfig) {
+    |config: &mut web::ServiceConfig| {
+        config
+            .app_data(pool)
+            .service(add_ticket_to_basket)
+            .service(get_ticket_types)
+            .service(get_ticket_durations)
+            .service(purchase_order)
+            .service(get_order)
+            .service(get_user)
+            .service(add_user_info)
+            .service(stream_order_stats);
+    }
+}
+
+/// Add Ticket of type and duration in days to basket
+#[utoipa::path(
+    responses(
+        (
+            status = 200,
+            description = "Ticket successfully added to basket and reserved for 10 mins",
+            body = Order
+        ),
+        (
+            status = 400,
+            description = "Ticket type/duration pair sold-out",
+            body = ApiError,
+            example = json!(ApiError::FailedPrecondition(String::from("ticket chalet3/3 sold out")))
+        )
+    )
+)]
 #[post("/tickets/add-to-basket")]
 pub async fn add_ticket_to_basket(
     pool: web::Data<db::DbPool>,

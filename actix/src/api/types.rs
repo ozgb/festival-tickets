@@ -1,5 +1,29 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use utoipa::ToSchema;
 use uuid::Uuid;
+
+use crate::db::error::DbError;
+
+#[derive(Error, Debug, Serialize, ToSchema)]
+pub enum ApiError {
+    #[error("database execution error: {0}")]
+    DbExecutionError(String),
+    #[error("failed precondition: {0}")]
+    FailedPrecondition(String),
+    #[error("unknown service error")]
+    Unknown,
+}
+
+impl From<DbError> for ApiError {
+    fn from(value: DbError) -> Self {
+        match value {
+            DbError::FailedPrecondition(e) => Self::FailedPrecondition(e),
+            DbError::ExecutionError(e) => Self::DbExecutionError(e.to_string()),
+            DbError::Unknown => Self::Unknown,
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub struct OrderStats {
@@ -8,7 +32,7 @@ pub struct OrderStats {
     pub order_count: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct Order {
     pub id: Uuid,
     pub ticket_type_id: String,
@@ -35,9 +59,10 @@ pub struct TicketType {
     pub sold_out: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddTicketToBasketRequest {
     pub ticket_type_id: String,
+    /// Duration in days
     pub duration: i32,
 }
 

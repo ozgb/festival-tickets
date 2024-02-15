@@ -3,8 +3,9 @@ use actix_web::{
     HttpResponse,
 };
 use thiserror::Error;
+use utoipa::ToSchema;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, ToSchema)]
 pub enum DbError {
     #[error("execution error")]
     ExecutionError(#[from] sqlx::Error),

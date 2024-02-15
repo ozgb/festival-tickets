@@ -1,11 +1,37 @@
 use actix_web::{middleware::Logger, web, App, HttpServer};
 
+use utoipa::OpenApi;
+use utoipa_rapidoc::RapiDoc;
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
+
 pub mod api;
 pub mod db;
 pub mod env;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Setup Api
+
+    #[derive(OpenApi)]
+    #[openapi(
+        paths(
+            api::add_ticket_to_basket,
+        ),
+        components(
+            schemas(
+                api::types::Order,
+                api::types::ApiError,
+                api::types::AddTicketToBasketRequest
+            )
+        ),
+        tags(
+            (name = "festival-tickets", description = "Purchase festival tickets")
+        ),
+    )]
+    struct ApiDoc;
+    let openapi = ApiDoc::openapi();
+
     // Setup logging, level INFO
     let env = env_logger::Env::default().default_filter_or("info");
     env_logger::Builder::from_env(env).init();
@@ -22,15 +48,14 @@ async fn main() -> std::io::Result<()> {
     println!("serving on {}:{}", addr.0, addr.1);
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .service(api::add_ticket_to_basket)
-            .service(api::get_ticket_types)
-            .service(api::get_ticket_durations)
-            .service(api::purchase_order)
-            .service(api::get_order)
-            .service(api::get_user)
-            .service(api::add_user_info)
-            .service(api::stream_order_stats)
+            .configure(api::configure(web::Data::new(pool.clone())))
+            // Setup OpenAPI routes.
+            // See: https://github.com/juhaku/utoipa/blob/master/examples/todo-actix/src/main.rs
+            .service(Redoc::with_url("/redoc", openapi.clone()))
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
+            )
+            .service(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
             .wrap(Logger::default())
     })
     .bind(addr)?
