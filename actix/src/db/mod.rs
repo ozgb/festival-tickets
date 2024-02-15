@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use crate::api::{AddUserInfoRequest, Order, OrderStats, TicketType, User};
+use crate::api::types::{AddUserInfoRequest, Order, OrderStats, TicketType, User};
 
 use super::env;
 use chrono;
