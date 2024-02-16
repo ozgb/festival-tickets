@@ -17,12 +17,21 @@ async fn main() -> std::io::Result<()> {
     #[openapi(
         paths(
             api::add_ticket_to_basket,
+            api::get_ticket_types,
+            api::get_ticket_durations,
+            api::purchase_order,
+            api::get_order,
+            api::get_user,
+            api::add_user_info,
         ),
         components(
             schemas(
                 api::types::Order,
-                api::types::ApiError,
-                api::types::AddTicketToBasketRequest
+                api::error::ApiError,
+                api::types::AddTicketToBasketRequest,
+                api::types::TicketType,
+                api::types::User,
+                api::types::AddUserInfoRequest,
             )
         ),
         tags(

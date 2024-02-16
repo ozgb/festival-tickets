@@ -127,7 +127,7 @@ JOIN ord ON tt.id = ord.ticket_type
     Ok(order)
 }
 
-pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> DbResult<Order> {
+pub async fn get_order(pool: &DbPool, order_id: &Uuid) -> DbResult<Option<Order>> {
     let order = sqlx::query_as!(
         Order,
         r#"
@@ -145,7 +145,7 @@ WHERE ord.id = $1
         "#,
         order_id
     )
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await?;
 
     Ok(order)

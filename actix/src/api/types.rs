@@ -1,29 +1,6 @@
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::db::error::DbError;
-
-#[derive(Error, Debug, Serialize, ToSchema)]
-pub enum ApiError {
-    #[error("database execution error: {0}")]
-    DbExecutionError(String),
-    #[error("failed precondition: {0}")]
-    FailedPrecondition(String),
-    #[error("unknown service error")]
-    Unknown,
-}
-
-impl From<DbError> for ApiError {
-    fn from(value: DbError) -> Self {
-        match value {
-            DbError::FailedPrecondition(e) => Self::FailedPrecondition(e),
-            DbError::ExecutionError(e) => Self::DbExecutionError(e.to_string()),
-            DbError::Unknown => Self::Unknown,
-        }
-    }
-}
 
 #[derive(Serialize)]
 pub struct OrderStats {
@@ -43,7 +20,7 @@ pub struct Order {
     pub purchased_at: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct User {
     pub id: Uuid,
     pub name: String,
@@ -52,7 +29,7 @@ pub struct User {
     pub order_id: Uuid,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TicketType {
     pub id: Uuid,
     pub display: String,
@@ -76,7 +53,7 @@ pub struct GetTicketTypesResponse {
     pub ticket_types: Vec<TicketType>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddUserInfoRequest {
     pub name: String,
     pub email: String,
