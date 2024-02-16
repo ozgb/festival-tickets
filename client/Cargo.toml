@@ -1,0 +1,16 @@
+[package]
+name = "festival-tickets-client"
+version = "0.1.0"
+edition = "2021"
+license = "SPECIFY A LICENSE BEFORE PUBLISHING"
+
+[dependencies]
+bytes = "1.5.0"
+chrono = { version = "0.4.31", default-features=false, features = ["serde"] }
+futures-core = "0.3.29"
+progenitor-client = "0.4.1"
+reqwest = { version = "0.11.20", default-features=false, features = ["json", "stream"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_urlencoded = "0.7.1"
+uuid = { version = "1.6.1", features = ["serde", "v4"] }
+

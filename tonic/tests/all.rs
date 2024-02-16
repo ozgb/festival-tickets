@@ -46,17 +46,12 @@ async fn reserve_ticket() {
 
     assert_eq!(ticket.ticket_type_id, "chalet3".to_string());
 
-    let expected_reservation_time = chrono::Utc::now()
-        .add(chrono::Duration::minutes(9))
-        .naive_utc();
+    let expected_reservation_time = chrono::Utc::now().add(chrono::Duration::minutes(9));
 
     println!("{}", ticket.reserved_until);
 
-    let ticket_reserved_time = chrono::NaiveDateTime::parse_from_str(
-        &ticket.reserved_until,
-        festival_tickets_tonic::CHRONO_TIMESTAMP_FMT,
-    )
-    .unwrap();
+    let ticket_reserved_time =
+        chrono::DateTime::parse_from_rfc3339(&ticket.reserved_until).unwrap();
 
     println!("{:#?}", ticket);
 
@@ -83,15 +78,9 @@ async fn purchase_ticket() {
 
     assert_eq!(order.ticket_type_id, "chalet3".to_string());
 
-    let expected_reservation_time = chrono::Utc::now()
-        .add(chrono::Duration::minutes(9))
-        .naive_utc();
+    let expected_reservation_time = chrono::Utc::now().add(chrono::Duration::minutes(9));
 
-    let ticket_reserved_time = chrono::NaiveDateTime::parse_from_str(
-        &order.reserved_until,
-        festival_tickets_tonic::CHRONO_TIMESTAMP_FMT,
-    )
-    .unwrap();
+    let ticket_reserved_time = chrono::DateTime::parse_from_rfc3339(&order.reserved_until).unwrap();
 
     println!("{:#?}", order);
 

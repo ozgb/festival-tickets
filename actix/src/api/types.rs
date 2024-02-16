@@ -16,8 +16,8 @@ pub struct Order {
     pub user_id: Option<String>,
     pub duration: i32,
     pub price: f32,
-    pub reserved_until: chrono::NaiveDateTime,
-    pub purchased_at: Option<chrono::NaiveDateTime>,
+    pub reserved_until: chrono::DateTime<chrono::Utc>,
+    pub purchased_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -31,7 +31,7 @@ pub struct User {
 
 #[derive(Serialize, ToSchema)]
 pub struct TicketType {
-    pub id: Uuid,
+    pub id: String,
     pub display: String,
     pub sold_out: bool,
 }

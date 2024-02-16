@@ -1,0 +1,5 @@
+api_spec_file := "/tmp/festival-tickets-api.json"
+
+gen-client:
+    curl http://localhost:50051/api-docs/openapi.json --output {{ api_spec_file }}
+    cargo progenitor -i {{ api_spec_file }} -o ../client -n festival-tickets-client -v 0.1.0

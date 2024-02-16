@@ -30,7 +30,7 @@ pub async fn get_ticket_types(pool: &DbPool) -> DbResult<Vec<TicketType>> {
     let mut ticket_types = Vec::new();
     while let Some(row) = rows.try_next().await? {
         ticket_types.push(TicketType {
-            id: row.try_get::<Uuid, _>("id")?,
+            id: row.try_get::<String, _>("id")?,
             display: row.try_get::<String, _>("display")?,
             sold_out: false,
         });
@@ -75,9 +75,7 @@ FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
         type_id,
-        chrono::Utc::now()
-            .add(chrono::Duration::minutes(10))
-            .naive_utc(),
+        chrono::Utc::now().add(chrono::Duration::minutes(10)),
         duration as i32
     )
     .fetch_one(pool)
@@ -118,7 +116,7 @@ SELECT
 FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
-        chrono::Utc::now().naive_utc(),
+        chrono::Utc::now(),
         order_id
     )
     .fetch_one(pool)
@@ -250,13 +248,12 @@ FROM order_stats"#
 }
 
 pub async fn remove_expired_orders(pool: &DbPool) -> DbResult<()> {
-    let cur_time = chrono::Utc::now();
     sqlx::query!(
         r#"
 DELETE FROM orders
 WHERE reserved_until < $1 AND purchased_at IS NULL
         "#,
-        cur_time.naive_utc()
+        chrono::Utc::now()
     )
     .execute(pool)
     .await?;

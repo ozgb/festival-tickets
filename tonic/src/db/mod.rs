@@ -75,15 +75,13 @@ SELECT
     ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
-    ord.reserved_until::text as "reserved_until!",
-    ord.purchased_at::text as purchased_at
+    timestamp_to_rfc3339_str(ord.reserved_until) as "reserved_until!",
+    timestamp_to_rfc3339_str(ord.purchased_at) as purchased_at
 FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
         type_id,
-        chrono::Utc::now()
-            .add(chrono::Duration::minutes(10))
-            .naive_utc(),
+        chrono::Utc::now().add(chrono::Duration::minutes(10)),
         duration as i32
     )
     .fetch_one(pool)
@@ -119,12 +117,12 @@ SELECT
     ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
-    ord.reserved_until::text as "reserved_until!",
-    ord.purchased_at::text as purchased_at
+    timestamp_to_rfc3339_str(ord.reserved_until) as "reserved_until!",
+    timestamp_to_rfc3339_str(ord.purchased_at) as purchased_at
 FROM ticket_types as tt
 JOIN ord ON tt.id = ord.ticket_type
         "#,
-        chrono::Utc::now().naive_utc(),
+        chrono::Utc::now(),
         order_id
     )
     .fetch_one(pool)
@@ -143,8 +141,8 @@ SELECT
     ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
-    ord.reserved_until::text as "reserved_until!",
-    ord.purchased_at::text as purchased_at
+    timestamp_to_rfc3339_str(ord.reserved_until) as "reserved_until!",
+    timestamp_to_rfc3339_str(ord.purchased_at) as purchased_at
 FROM orders as ord
 JOIN ticket_types as tt ON tt.id = ord.ticket_type
 WHERE ord.id = $1
@@ -223,8 +221,8 @@ SELECT
     ord.user_id::text as "user_id",
     ord.duration_days::integer as "duration!",
     44.0::real as "price!",
-    ord.reserved_until::text as "reserved_until!",
-    ord.purchased_at::text as purchased_at
+    timestamp_to_rfc3339_str(ord.reserved_until) as "reserved_until!",
+    timestamp_to_rfc3339_str(ord.purchased_at) as purchased_at
 FROM orders as ord
 JOIN ticket_types as tt ON tt.id = ord.ticket_type
 WHERE ord.id = $1
@@ -256,13 +254,12 @@ FROM order_stats"#
 }
 
 pub async fn remove_expired_orders(pool: &DbPool) -> DbResult<()> {
-    let cur_time = chrono::Utc::now();
     sqlx::query!(
         r#"
 DELETE FROM orders
 WHERE reserved_until < $1 AND purchased_at IS NULL
         "#,
-        cur_time.naive_utc()
+        chrono::Utc::now()
     )
     .execute(pool)
     .await?;

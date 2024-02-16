@@ -24,3 +24,6 @@ utoipa = { version = "4", features = ["actix_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "6", features = ["actix-web"] }
 utoipa-redoc = { version = "3", features = ["actix-web"] }
 utoipa-rapidoc = { version = "3", features = ["actix-web"] }
+
+[dev-dependencies]
+festival-tickets-client = { path = "../client" }

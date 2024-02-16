@@ -41,7 +41,7 @@ impl actix_web::error::ResponseError for ApiError {
 
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .insert_header(ContentType::html())
-            .body(self.to_string())
+            .insert_header(ContentType::json())
+            .body(serde_json::to_vec(self).unwrap())
     }
 }
